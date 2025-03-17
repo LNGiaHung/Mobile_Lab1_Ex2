@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Lab1_Ex2</string>
+    <string name="hint_text">Nhập câu cần phân tích</string>
+    <string name="classify_button">Phân loại</string>
+</resources>

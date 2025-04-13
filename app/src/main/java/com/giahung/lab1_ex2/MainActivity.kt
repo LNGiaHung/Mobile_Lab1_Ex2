@@ -12,7 +12,6 @@ import com.google.android.material.button.MaterialButton
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.UnknownHostException
@@ -24,8 +23,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mainLayout: ConstraintLayout
     private val client = OkHttpClient()
     
-    private val API_KEY = "AIzaSyD-SRUJ_SIRzkhhhHnqilr4Fb3RSDvcSu4"
-    private val API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    private val API_URL = "http://10.0.2.2:8000/analyze"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,25 +50,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun analyzeSentiment(text: String) {
-        val prompt = """
-            Analyze the sentiment of this text and respond with exactly one word: 
-            either "positive", "negative", or "neutral". Text: "$text"
-        """.trimIndent()
-
         val requestBody = JSONObject().apply {
-            put("contents", JSONArray().put(
-                JSONObject().apply {
-                    put("parts", JSONArray().put(
-                        JSONObject().put("text", prompt)
-                    ))
-                }
-            ))
+            put("text", text)
         }
 
         Log.d("API_REQUEST", "Request body: ${requestBody}")
 
         val request = Request.Builder()
-            .url("$API_URL?key=$API_KEY")
+            .url(API_URL)
             .addHeader("Content-Type", "application/json")
             .post(requestBody.toString().toRequestBody("application/json".toMediaType()))
             .build()
@@ -115,16 +102,16 @@ class MainActivity : AppCompatActivity() {
                     Log.d("API_SENTIMENT", "Extracted sentiment: $sentiment")
                     
                     runOnUiThread {
-                        when (sentiment.toLowerCase()) {
-                            "positive" -> {
+                        when (sentiment) {
+                            "POS" -> {
                                 mainLayout.setBackgroundColor(Color.rgb(200, 255, 200)) // Light green
                                 resultText.text = "Positive sentiment 😊"
                             }
-                            "negative" -> {
+                            "NEG" -> {
                                 mainLayout.setBackgroundColor(Color.rgb(255, 200, 200)) // Light red
                                 resultText.text = "Negative sentiment 😔"
                             }
-                            "neutral" -> {
+                            "NEU" -> {
                                 mainLayout.setBackgroundColor(Color.rgb(230, 230, 230)) // Light gray
                                 resultText.text = "Neutral sentiment 😐"
                             }
@@ -153,17 +140,7 @@ class MainActivity : AppCompatActivity() {
             val jsonResponse = JSONObject(responseBody ?: "")
             Log.d("API_PARSE", "Parsing response: $responseBody")
             
-            val candidates = jsonResponse.optJSONArray("candidates")
-            if (candidates == null || candidates.length() == 0) {
-                return "No results found"
-            }
-            
-            val content = candidates.getJSONObject(0)
-                .getJSONObject("content")
-                .getJSONArray("parts")
-                .getJSONObject(0)
-                .getString("text")
-            content.trim()
+            jsonResponse.getString("sentiment")
         } catch (e: Exception) {
             Log.e("API_PARSE_ERROR", "Error parsing response", e)
             "Error: ${e.message}"
